@@ -19,6 +19,6 @@
         "postcss-nesting": "^12.0.2"
     },
     "dependencies": {
-        "treeselectjs": "^0.10.0"
+        "treeselectjs": "^0.13.0"
     }
 }
