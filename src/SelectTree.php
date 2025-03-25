@@ -88,174 +88,13 @@ class SelectTree extends Field implements HasAffixActions
 
     protected Closure|array|null $prepend = null;
 
-
-    protected function setUp(): void
-    {
-        // Load the state from relationships using a callback function.
-        $this->loadStateFromRelationshipsUsing(static function (self $component): void {
-            // Get the current relationship associated with the component.
-            $relationship = $component->getRelationship();
-
-            // Check if the relationship is a BelongsToMany relationship.
-            if ($relationship instanceof BelongsToMany) {
-                // Retrieve related model instances and extract their IDs into an array.
-                $state = $relationship->getResults()
-                    ->pluck($relationship->getRelatedKeyName())
-                    ->toArray();
-
-                // Set the component's state with the extracted IDs.
-                $component->state($state);
-            }
-        });
-
-        // Save relationships using a callback function.
-        $this->saveRelationshipsUsing(static function (self $component, $state) {
-            // Check if the component's relationship is a BelongsToMany relationship.
-            if ($component->getRelationship() instanceof BelongsToMany) {
-                // Wrap the state in a collection and convert it to an array if it's not set.
-                $state = Arr::wrap($state ?? []);
-
-                $pivotData = $component->getPivotData();
-
-                // Sync the relationship with the provided state (IDs).
-                if ($pivotData === []) {
-                    $component->getRelationship()->sync($state ?? []);
-
-                    return;
-                }
-
-                // Sync the relationship with the provided state (IDs) plus pivot data.
-                $component->getRelationship()->syncWithPivotValues($state ?? [], $pivotData);
-            }
-        });
-
-        $this->createOptionUsing(static function (SelectTree $component, array $data, Form $form) {
-            $record = $component->getRelationship()->getRelated();
-            $record->fill($data);
-            $record->save();
-
-            $form->model($record)->saveRelationships();
-
-            return $component->getCustomKey($record);
-        });
-
-        $this->dehydrated(fn (SelectTree $component): bool => ! $component->getRelationship() instanceof BelongsToMany);
-
-        $this->placeholder(static fn (SelectTree $component): ?string => $component->isDisabled() ? null : __('filament-forms::components.select.placeholder'));
-
-        $this->suffixActions([
-            static fn (SelectTree $component): ?Action => $component->getCreateOptionAction(),
-        ]);
-    }
-
-    protected function buildTree(): Collection
-    {
-        // Start with two separate query builders
-        $nullParentQuery = $this->getRelationship()->getRelated()->query()->where($this->getParentAttribute(), $this->getParentNullValue());
-        $nonNullParentQuery = $this->getRelationship()->getRelated()->query()->whereNot($this->getParentAttribute(), $this->getParentNullValue());
-
-        // If we're not at the root level and a modification callback is provided, apply it to null query
-        if ($this->modifyQueryUsing) {
-            $nullParentQuery = $this->evaluate($this->modifyQueryUsing, ['query' => $nullParentQuery]);
-        }
-
-        // If we're at the child level and a modification callback is provided, apply it to non null query
-        if ($this->modifyChildQueryUsing) {
-            $nonNullParentQuery = $this->evaluate($this->modifyChildQueryUsing, ['query' => $nonNullParentQuery]);
-        }
-
-        if ($this->withTrashed) {
-            $nullParentQuery->withTrashed($this->withTrashed);
-            $nonNullParentQuery->withTrashed($this->withTrashed);
-        }
-
-        $nullParentResults = $nullParentQuery->get();
-        $nonNullParentResults = $nonNullParentQuery->get();
-
-        // Combine the results from both queries
-        $combinedResults = $nullParentResults->concat($nonNullParentResults);
-
-        // Store results for additional functionality
-        if ($this->storeResults) {
-            $this->results = $combinedResults;
-        }
-
-        return $this->buildTreeFromResults($combinedResults);
-    }
-
-    private function buildTreeFromResults($results, $parent = null): Collection
-    {
-        // Assign the parent's null value to the $parent variable if it's not null
-        if ($parent == null || $parent == $this->getParentNullValue()) {
-            $parent = $this->getParentNullValue() ?? $parent;
-        }
-
-        // Create a collection to store the tree
-        $tree = collect();
-
-        // Create a mapping of results by their parent IDs for faster lookup
-        $resultMap = [];
-
-        // Group results by their parent IDs
-        foreach ($results as $result) {
-            $parentId = $result->{$this->getParentAttribute()};
-            if (! isset($resultMap[$parentId])) {
-                $resultMap[$parentId] = [];
-            }
-            $resultMap[$parentId][] = $result;
-        }
-
-        // Define disabled options
-        $disabledOptions = $this->getDisabledOptions();
-
-        // Define hidden options
-        $hiddenOptions = $this->getHiddenOptions();
-
-        // Recursively build the tree starting from the root (null parent)
-        $rootResults = $resultMap[$parent] ?? [];
-        foreach ($rootResults as $result) {
-            // Build a node and add it to the tree
-            $node = $this->buildNode($result, $resultMap, $disabledOptions, $hiddenOptions);
-            $tree->push($node);
-        }
-
-        return $tree;
-    }
-
-    private function buildNode($result, $resultMap, $disabledOptions, $hiddenOptions): array
-    {
-        $key = $this->getCustomKey($result);
-
-        // Create a node with 'name' and 'value' attributes
-        $node = [
-            'name' => $result->{$this->getTitleAttribute()},
-            'value' => $key,
-            'parent' => $result->{$this->getParentAttribute()},
-            'disabled' => in_array($key, $disabledOptions),
-            'hidden' => in_array($key, $hiddenOptions),
-        ];
-
-        // Check if the result has children
-        if (isset($resultMap[$key])) {
-            $children = collect();
-            // Recursively build child nodes
-            foreach ($resultMap[$key] as $child) {
-                // don't add the hidden ones
-                if (in_array($this->getCustomKey($child), $hiddenOptions)) {
-                    continue;
-                }
-                $childNode = $this->buildNode($child, $resultMap, $disabledOptions, $hiddenOptions);
-                $children->push($childNode);
-            }
-            // Add children to the node
-            $node['children'] = $children->toArray();
-        }
-
-        return $node;
-    }
-
-    public function relationship(string $relationship, string $titleAttribute, string $parentAttribute, ?Closure $modifyQueryUsing = null, ?Closure $modifyChildQueryUsing = null): self
-    {
+    public function relationship(
+        string $relationship,
+        string $titleAttribute,
+        string $parentAttribute,
+        ?Closure $modifyQueryUsing = null,
+        ?Closure $modifyChildQueryUsing = null
+    ): self {
         $this->relationship = $relationship;
         $this->titleAttribute = $titleAttribute;
         $this->parentAttribute = $parentAttribute;
@@ -268,13 +107,6 @@ class SelectTree extends Field implements HasAffixActions
     public function withCount(bool $withCount = true): static
     {
         $this->withCount = $withCount;
-
-        return $this;
-    }
-
-    public function withTrashed(bool $withTrashed = true): static
-    {
-        $this->withTrashed = $withTrashed;
 
         return $this;
     }
@@ -295,35 +127,8 @@ class SelectTree extends Field implements HasAffixActions
 
     public function multiple(Closure|bool $multiple = true): static
     {
-        $this->multiple =$this->evaluate($multiple);
+        $this->multiple = $multiple;
         return $this;
-    }
-
-    public function prepend(Closure|array|null $prepend = null): static
-    {
-        $this->prepend = $this->evaluate($prepend);
-        return $this;
-    }
-
-
-    public function getRelationship(): BelongsToMany|BelongsTo
-    {
-        return $this->getModelInstance()->{$this->evaluate($this->relationship)}();
-    }
-
-    public function getTitleAttribute(): string
-    {
-        return $this->evaluate($this->titleAttribute);
-    }
-
-    public function getParentAttribute(): string
-    {
-        return $this->evaluate($this->parentAttribute);
-    }
-
-    public function getParentNullValue(): null|int|string
-    {
-        return $this->evaluate($this->parentNullValue);
     }
 
     public function clearable(bool $clearable = true): static
@@ -412,12 +217,154 @@ class SelectTree extends Field implements HasAffixActions
 
     public function getTree(): Collection|array
     {
-        return $this->evaluate($this->buildTree()->when($this->prepend, fn(Collection $tree) => $tree->prepend($this->prepend)));
+        return $this->evaluate($this->buildTree()->when($this->prepend,
+            fn(Collection $tree) => $tree->prepend($this->evaluate($this->prepend))));
     }
 
-    public function getResults(): Collection|array|null
+    protected function buildTree(): Collection
     {
-        return $this->evaluate($this->results);
+        // Start with two separate query builders
+        $nullParentQuery = $this->getRelationship()->getRelated()->query()->where($this->getParentAttribute(),
+            $this->getParentNullValue());
+        $nonNullParentQuery = $this->getRelationship()->getRelated()->query()->whereNot($this->getParentAttribute(),
+            $this->getParentNullValue());
+
+        // If we're not at the root level and a modification callback is provided, apply it to null query
+        if ($this->modifyQueryUsing) {
+            $nullParentQuery = $this->evaluate($this->modifyQueryUsing, ['query' => $nullParentQuery]);
+        }
+
+        // If we're at the child level and a modification callback is provided, apply it to non null query
+        if ($this->modifyChildQueryUsing) {
+            $nonNullParentQuery = $this->evaluate($this->modifyChildQueryUsing, ['query' => $nonNullParentQuery]);
+        }
+
+        if ($this->withTrashed) {
+            $nullParentQuery->withTrashed($this->withTrashed);
+            $nonNullParentQuery->withTrashed($this->withTrashed);
+        }
+
+        $nullParentResults = $nullParentQuery->get();
+        $nonNullParentResults = $nonNullParentQuery->get();
+
+        // Combine the results from both queries
+        $combinedResults = $nullParentResults->concat($nonNullParentResults);
+
+        // Store results for additional functionality
+        if ($this->storeResults) {
+            $this->results = $combinedResults;
+        }
+
+        return $this->buildTreeFromResults($combinedResults);
+    }
+
+    public function getParentAttribute(): string
+    {
+        return $this->evaluate($this->parentAttribute);
+    }
+
+    public function getParentNullValue(): null|int|string
+    {
+        return $this->evaluate($this->parentNullValue);
+    }
+
+    public function withTrashed(bool $withTrashed = true): static
+    {
+        $this->withTrashed = $withTrashed;
+
+        return $this;
+    }
+
+    private function buildTreeFromResults($results, $parent = null): Collection
+    {
+        // Assign the parent's null value to the $parent variable if it's not null
+        if ($parent == null || $parent == $this->getParentNullValue()) {
+            $parent = $this->getParentNullValue() ?? $parent;
+        }
+
+        // Create a collection to store the tree
+        $tree = collect();
+
+        // Create a mapping of results by their parent IDs for faster lookup
+        $resultMap = [];
+
+        // Group results by their parent IDs
+        foreach ($results as $result) {
+            $parentId = $result->{$this->getParentAttribute()};
+            if (!isset($resultMap[$parentId])) {
+                $resultMap[$parentId] = [];
+            }
+            $resultMap[$parentId][] = $result;
+        }
+
+        // Define disabled options
+        $disabledOptions = $this->getDisabledOptions();
+
+        // Define hidden options
+        $hiddenOptions = $this->getHiddenOptions();
+
+        // Recursively build the tree starting from the root (null parent)
+        $rootResults = $resultMap[$parent] ?? [];
+        foreach ($rootResults as $result) {
+            // Build a node and add it to the tree
+            $node = $this->buildNode($result, $resultMap, $disabledOptions, $hiddenOptions);
+            $tree->push($node);
+        }
+
+        return $tree;
+    }
+
+    public function getDisabledOptions(): array
+    {
+        return $this->evaluate($this->disabledOptions);
+    }
+
+    public function getHiddenOptions(): array
+    {
+        return $this->evaluate($this->hiddenOptions);
+    }
+
+    private function buildNode($result, $resultMap, $disabledOptions, $hiddenOptions): array
+    {
+        $key = $this->getCustomKey($result);
+
+        // Create a node with 'name' and 'value' attributes
+        $node = [
+            'name' => $result->{$this->getTitleAttribute()},
+            'value' => $key,
+            'parent' => $result->{$this->getParentAttribute()},
+            'disabled' => in_array($key, $disabledOptions),
+            'hidden' => in_array($key, $hiddenOptions),
+        ];
+
+        // Check if the result has children
+        if (isset($resultMap[$key])) {
+            $children = collect();
+            // Recursively build child nodes
+            foreach ($resultMap[$key] as $child) {
+                // don't add the hidden ones
+                if (in_array($this->getCustomKey($child), $hiddenOptions)) {
+                    continue;
+                }
+                $childNode = $this->buildNode($child, $resultMap, $disabledOptions, $hiddenOptions);
+                $children->push($childNode);
+            }
+            // Add children to the node
+            $node['children'] = $children->toArray();
+        }
+
+        return $node;
+    }
+
+    public function getTitleAttribute(): string
+    {
+        return $this->evaluate($this->titleAttribute);
+    }
+
+    public function prepend(Closure|array|null $prepend = null): static
+    {
+        $this->prepend = $prepend;
+        return $this;
     }
 
     public function getExpandSelected(): bool
@@ -440,21 +387,9 @@ class SelectTree extends Field implements HasAffixActions
         return $this->evaluate($this->independent);
     }
 
-    public function getCustomKey($record)
-    {
-        return is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
-    }
-
     public function getWithCount(): bool
     {
         return $this->evaluate($this->withCount);
-    }
-
-    public function getMultiple(): bool
-    {
-        return $this->evaluate(
-            is_null($this->multiple) ? $this->getRelationship() instanceof BelongsToMany : $this->multiple
-        );
     }
 
     public function getClearable(): bool
@@ -487,31 +422,6 @@ class SelectTree extends Field implements HasAffixActions
         return $this->evaluate($this->direction);
     }
 
-    public function getDisabledOptions(): array
-    {
-        return $this->evaluate($this->disabledOptions);
-    }
-
-    public function getHiddenOptions(): array
-    {
-        return $this->evaluate($this->hiddenOptions);
-    }
-
-    public function getCreateOptionActionForm(Form $form): array|Form|null
-    {
-        return $this->evaluate($this->createOptionActionForm, ['form' => $form]);
-    }
-
-    public function hasCreateOptionActionFormSchema(): bool
-    {
-        return (bool) $this->createOptionActionForm;
-    }
-
-    public function getCreateOptionModalHeading(): ?string
-    {
-        return $this->evaluate($this->createOptionModalHeading);
-    }
-
     public function createOptionForm(array|Closure|null $schema): static
     {
         $this->createOptionActionForm = $schema;
@@ -519,14 +429,81 @@ class SelectTree extends Field implements HasAffixActions
         return $this;
     }
 
-    public function getCreateOptionActionName(): string
+    public function createOptionModalHeading(string|Closure|null $heading): static
     {
-        return 'createOption';
+        $this->createOptionModalHeading = $heading;
+
+        return $this;
     }
 
-    public function getCreateOptionUsing(): ?Closure
+    protected function setUp(): void
     {
-        return $this->createOptionUsing;
+        // Load the state from relationships using a callback function.
+        $this->loadStateFromRelationshipsUsing(static function (self $component): void {
+            // Get the current relationship associated with the component.
+            $relationship = $component->getRelationship();
+
+            // Check if the relationship is a BelongsToMany relationship.
+            if ($relationship instanceof BelongsToMany) {
+                // Retrieve related model instances and extract their IDs into an array.
+                $state = $relationship->getResults()
+                    ->pluck($relationship->getRelatedKeyName())
+                    ->toArray();
+
+                // Set the component's state with the extracted IDs.
+                $component->state($state);
+            }
+        });
+
+        // Save relationships using a callback function.
+        $this->saveRelationshipsUsing(static function (self $component, $state) {
+            // Check if the component's relationship is a BelongsToMany relationship.
+            if ($component->getRelationship() instanceof BelongsToMany) {
+                // Wrap the state in a collection and convert it to an array if it's not set.
+                $state = Arr::wrap($state ?? []);
+
+                $pivotData = $component->getPivotData();
+
+                // Sync the relationship with the provided state (IDs).
+                if ($pivotData === []) {
+                    $component->getRelationship()->sync($state ?? []);
+
+                    return;
+                }
+
+                // Sync the relationship with the provided state (IDs) plus pivot data.
+                $component->getRelationship()->syncWithPivotValues($state ?? [], $pivotData);
+            }
+        });
+
+        $this->createOptionUsing(static function (SelectTree $component, array $data, Form $form) {
+            $record = $component->getRelationship()->getRelated();
+            $record->fill($data);
+            $record->save();
+
+            $form->model($record)->saveRelationships();
+
+            return $component->getCustomKey($record);
+        });
+
+        $this->dehydrated(fn(SelectTree $component): bool => !$component->getRelationship() instanceof BelongsToMany);
+
+        $this->placeholder(static fn(SelectTree $component
+        ): ?string => $component->isDisabled() ? null : __('filament-forms::components.select.placeholder'));
+
+        $this->suffixActions([
+            static fn(SelectTree $component): ?Action => $component->getCreateOptionAction(),
+        ]);
+    }
+
+    public function getRelationship(): BelongsToMany|BelongsTo
+    {
+        return $this->getModelInstance()->{$this->evaluate($this->relationship)}();
+    }
+
+    public function getResults(): Collection|array|null
+    {
+        return $this->evaluate($this->results);
     }
 
     public function createOptionUsing(Closure $callback): static
@@ -536,13 +513,18 @@ class SelectTree extends Field implements HasAffixActions
         return $this;
     }
 
+    public function getCustomKey($record)
+    {
+        return is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
+    }
+
     public function getCreateOptionAction(): ?Action
     {
         if ($this->isDisabled()) {
             return null;
         }
 
-        if (! $this->hasCreateOptionActionFormSchema()) {
+        if (!$this->hasCreateOptionActionFormSchema()) {
             return null;
         }
 
@@ -552,8 +534,14 @@ class SelectTree extends Field implements HasAffixActions
                     $component->getRelationship() ? $component->getRelationship()->getModel()::class : null,
                 ));
             })
-            ->action(static function (Action $action, array $arguments, SelectTree $component, array $data, ComponentContainer $form) {
-                if (! $component->getCreateOptionUsing()) {
+            ->action(static function (
+                Action $action,
+                array $arguments,
+                SelectTree $component,
+                array $data,
+                ComponentContainer $form
+            ) {
+                if (!$component->getCreateOptionUsing()) {
                     throw new Exception("Select field [{$component->getStatePath()}] must have a [createOptionUsing()] closure set.");
                 }
 
@@ -572,7 +560,7 @@ class SelectTree extends Field implements HasAffixActions
                 $component->state($state);
                 $component->callAfterStateUpdated();
 
-                if (! ($arguments['another'] ?? false)) {
+                if (!($arguments['another'] ?? false)) {
                     return;
                 }
 
@@ -587,7 +575,7 @@ class SelectTree extends Field implements HasAffixActions
             ->iconButton()
             ->modalHeading($this->getCreateOptionModalHeading() ?? __('filament-forms::components.select.actions.create_option.modal.heading'))
             ->modalSubmitActionLabel(__('filament-forms::components.select.actions.create_option.modal.actions.create.label'))
-            ->extraModalFooterActions(fn (Action $action, SelectTree $component): array => $component->getMultiple() ? [
+            ->extraModalFooterActions(fn(Action $action, SelectTree $component): array => $component->getMultiple() ? [
                 $action->makeModalSubmitAction('createAnother', arguments: ['another' => true])
                     ->label(__('filament-forms::components.select.actions.create_option.modal.actions.create_another.label')),
             ] : []);
@@ -607,10 +595,35 @@ class SelectTree extends Field implements HasAffixActions
         return $action;
     }
 
-    public function createOptionModalHeading(string|Closure|null $heading): static
+    public function hasCreateOptionActionFormSchema(): bool
     {
-        $this->createOptionModalHeading = $heading;
+        return (bool) $this->createOptionActionForm;
+    }
 
-        return $this;
+    public function getCreateOptionActionName(): string
+    {
+        return 'createOption';
+    }
+
+    public function getCreateOptionActionForm(Form $form): array|Form|null
+    {
+        return $this->evaluate($this->createOptionActionForm, ['form' => $form]);
+    }
+
+    public function getCreateOptionUsing(): ?Closure
+    {
+        return $this->createOptionUsing;
+    }
+
+    public function getMultiple(): bool
+    {
+        return $this->evaluate(
+            is_null($this->multiple) ? $this->getRelationship() instanceof BelongsToMany : $this->evaluate($this->multiple)
+        );
+    }
+
+    public function getCreateOptionModalHeading(): ?string
+    {
+        return $this->evaluate($this->createOptionModalHeading);
     }
 }
