@@ -26,8 +26,12 @@ export default function selectTree({
 
         /** @type Treeselect */
         tree: null,
-
         init() {
+
+            if (typeof this.state === 'string') {
+                this.state = Number(this.state);
+            }
+
             this.tree = new Treeselect({
                 id: `tree-${name}-id`,
                 ariaLabel: `tree-${name}-label`,

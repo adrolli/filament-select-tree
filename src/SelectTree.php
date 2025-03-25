@@ -84,6 +84,11 @@ class SelectTree extends Field implements HasAffixActions
 
     protected Collection|array|null $results = null;
 
+    protected Closure|bool|null $multiple = null;
+
+    protected Closure|array|null $prepend = null;
+
+
     protected function setUp(): void
     {
         // Load the state from relationships using a callback function.
@@ -143,7 +148,7 @@ class SelectTree extends Field implements HasAffixActions
         ]);
     }
 
-    private function buildTree(): Collection
+    protected function buildTree(): Collection
     {
         // Start with two separate query builders
         $nullParentQuery = $this->getRelationship()->getRelated()->query()->where($this->getParentAttribute(), $this->getParentNullValue());
@@ -288,6 +293,19 @@ class SelectTree extends Field implements HasAffixActions
         return $this;
     }
 
+    public function multiple(Closure|bool $multiple = true): static
+    {
+        $this->multiple =$this->evaluate($multiple);
+        return $this;
+    }
+
+    public function prepend(Closure|array|null $prepend = null): static
+    {
+        $this->prepend = $this->evaluate($prepend);
+        return $this;
+    }
+
+
     public function getRelationship(): BelongsToMany|BelongsTo
     {
         return $this->getModelInstance()->{$this->evaluate($this->relationship)}();
@@ -394,7 +412,7 @@ class SelectTree extends Field implements HasAffixActions
 
     public function getTree(): Collection|array
     {
-        return $this->evaluate($this->buildTree());
+        return $this->evaluate($this->buildTree()->when($this->prepend, fn(Collection $tree) => $tree->prepend($this->prepend)));
     }
 
     public function getResults(): Collection|array|null
@@ -434,7 +452,9 @@ class SelectTree extends Field implements HasAffixActions
 
     public function getMultiple(): bool
     {
-        return $this->evaluate($this->getRelationship() instanceof BelongsToMany);
+        return $this->evaluate(
+            is_null($this->multiple) ? $this->getRelationship() instanceof BelongsToMany : $this->multiple
+        );
     }
 
     public function getClearable(): bool
