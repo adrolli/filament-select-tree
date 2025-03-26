@@ -26,8 +26,8 @@ export default function selectTree({
 
         /** @type Treeselect */
         tree: null,
-        init() {
 
+        init() {
             this.tree = new Treeselect({
                 id: `tree-${name}-id`,
                 ariaLabel: `tree-${name}-label`,
