@@ -170,13 +170,12 @@ Now you can access the results in `disabledOptions` or `hiddenOptions`
 })
 ```
 
-By default, multiple or single selection in the tree is determined by the type of the relationship. Single for `BelongsTo` multiple for `BelongsToMany`. If you want explicitly set the type of selection use:  
+By default, the type of selection in the tree (single or multiple) is determined by the relationship type: `BelongsTo` for single selection and `BelongsToMany` for multiple selection. If you want to explicitly set the selection type, use:
 
 ```PHP
 ->multiple(false) //or true, Closure that returns boolean
 ```
-
-If you need to prepend an item to the tree menu use `prepend`. Method accept an array or closure. Useful when tree-select is used as a filter (see example below).
+If you need to prepend an item to the tree menu, use the `prepend` method. This method accepts an array or a closure. It is useful when the tree-select is used as a filter (see example below).
 
 ```php
 use Filament\Tables\Filters\Filter;
@@ -190,6 +189,7 @@ use CodeWithDennis\FilamentSelectTree\SelectTree;
         ->form([
             SelectTree::make('category')
                 ->relationship('categories', 'name', 'parent_id')
+                ->enableBranchNode()
                 ->multiple(false)
                 ->prepend([
                     'name'=>'Uncategorized Products', //required
