@@ -170,6 +170,49 @@ Now you can access the results in `disabledOptions` or `hiddenOptions`
 })
 ```
 
+By default, multiple or single selection in the tree is determined by the type of the relationship. Single for `BelongsTo` multiple for `BelongsToMany`. If you want explicitly set the type of selection use:  
+
+```PHP
+->multiple(false) //or true, Closure that returns boolean
+```
+
+If you need to prepend an item to the tree menu use `prepend`. Method accept an array or closure. Useful when tree-select is used as a filter (see example below).
+
+```php
+use Filament\Tables\Filters\Filter;
+use Illuminate\Database\Eloquent\Builder;
+use CodeWithDennis\FilamentSelectTree\SelectTree;
+```
+
+```php
+->filters([
+    Filter::make('tree')
+        ->form([
+            SelectTree::make('category')
+                ->relationship('categories', 'name', 'parent_id')
+                ->multiple(false)
+                ->prepend([
+                    'name'=>'Uncategorized Products', //required
+                    'value'=>-1, //required
+                    'parent' => null // optional
+                    'disabled' => false // optional
+                    'hidden' => false // optional
+                    'children'=>[] //optional
+                ])
+        ])
+        ->query(function (Builder $query, array $data) {
+            $categories= [(int) $data['category']];
+            return $query->when($data['category'], function ($query, $categories) {
+                if($data['category']===-1){
+                    return $query->whereDoesntHave('categories');
+                }
+                
+                return $query->whereHas('categories', fn($query) => $query->whereIn('id', $categories));
+            });
+        })
+])
+```
+
 ## Filters
 
 Use the tree in your table filters. Here's an example to show you how.
