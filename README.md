@@ -195,16 +195,16 @@ use CodeWithDennis\FilamentSelectTree\SelectTree;
                 ->enableBranchNode()
                 ->multiple(false)
                 ->prepend([
-                    'name' => 'Uncategorized Products',
+                    'name' => 'Uncategorized Records',
                     'value' => -1,
-                    'parent' => null // optional
-                    'disabled' => false // optional
-                    'hidden' => false // optional
-                    'children' => [] // optional
+                    'parent' => null, // optional
+                    'disabled' => false, // optional
+                    'hidden' => false, // optional
+                    'children' => [], // optional
                 ])
         ])
         ->query(function (Builder $query, array $data) {
-            $categories= [(int) $data['category']];
+            $categories = [(int) $data['category']];
             
             return $query->when($data['category'], function (Builder $query, $categories) {
                 if($data['category'] === -1){
