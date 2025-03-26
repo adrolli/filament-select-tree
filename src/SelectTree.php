@@ -88,7 +88,6 @@ class SelectTree extends Field implements HasAffixActions
 
     protected Closure|array|null $prepend = null;
 
-
     protected function setUp(): void
     {
         // Load the state from relationships using a callback function.
@@ -296,12 +295,14 @@ class SelectTree extends Field implements HasAffixActions
     public function multiple(Closure|bool $multiple = true): static
     {
         $this->multiple = $multiple;
+
         return $this;
     }
 
     public function prepend(Closure|array|null $prepend = null): static
     {
         $this->prepend = $prepend;
+
         return $this;
     }
 
@@ -412,7 +413,7 @@ class SelectTree extends Field implements HasAffixActions
     public function getTree(): Collection|array
     {
         return $this->evaluate($this->buildTree()->when($this->prepend,
-            fn(Collection $tree) => $tree->prepend($this->evaluate($this->prepend))));
+            fn (Collection $tree) => $tree->prepend($this->evaluate($this->prepend))));
     }
 
     public function getResults(): Collection|array|null
