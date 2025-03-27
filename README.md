@@ -3,7 +3,8 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/codewithdennis/filament-select-tree.svg?style=flat-square)](https://packagist.org/packages/codewithdennis/filament-select-tree)
 [![Total Downloads](https://img.shields.io/packagist/dt/codewithdennis/filament-select-tree.svg?style=flat-square)](https://packagist.org/packages/codewithdennis/filament-select-tree)
 
-This package adds a dynamic select tree field to your Laravel / Filament application, allowing you to create interactive hierarchical selection dropdowns based on relationships. It's handy for building selection dropdowns with various customization options.
+This package adds a dynamic select tree field to your Laravel / Filament application, allowing you to create interactive hierarchical selection dropdowns based on relationships. It's handy for
+building selection dropdowns with various customization options.
 
 ![thumbnail](https://raw.githubusercontent.com/CodeWithDennis/filament-select-tree/3.x/resources/images/thumbnail.jpg)
 
@@ -23,14 +24,14 @@ php artisan filament:assets
 
 Use the tree for a `BelongsToMany` relationship
 
-```PHP
+```php
 SelectTree::make('categories')
     ->relationship('categories', 'name', 'parent_id')
 ```
 
 Use the tree for a `BelongsTo` relationship
 
-```PHP
+```php
 SelectTree::make('category_id')
     ->relationship('category', 'name', 'parent_id')
 ```
@@ -39,14 +40,14 @@ SelectTree::make('category_id')
 
 Customize the parent query
 
-```PHP
+```php
 SelectTree::make('categories')
     ->relationship(relationship: 'categories', titleAttribute: 'name', parentAttribute: 'parent_id', modifyQueryUsing: fn($query) => $query));
 ```
 
 Customize the child query
 
-```PHP
+```php
 SelectTree::make('categories')
     ->relationship(relationship: 'categories', titleAttribute: 'name', parentAttribute: 'parent_id', modifyChildQueryUsing: fn($query) => $query));
 ```
@@ -55,119 +56,165 @@ SelectTree::make('categories')
 
 Set a custom placeholder when no items are selected
 
-```PHP
+```php
 ->placeholder(__('Please select a category'))
 ```
 
 Enable the selection of groups
 
-```PHP
+```php
 ->enableBranchNode()
 ```
 
 Customize the label when there are zero search results
 
-```PHP
+```php
 ->emptyLabel(__('Oops, no results have been found!'))
 ```
 
 Display the count of children alongside the group's name
 
-```PHP
+```php
 ->withCount()
 ```
 
 Keep the dropdown open at all times
 
-```PHP
+```php
 ->alwaysOpen()
 ```
 
 Set nodes as dependent
 
-```PHP
+```php
 ->independent(false)
 ```
 
 Expand the tree with selected values (only works if field is dependent)
 
-```PHP
+```php
 ->expandSelected(false)
 ```
 
 Set the parent's null value to -1, allowing you to use -1 as a sentinel value (default = null)
 
-```PHP
+```php
 ->parentNullValue(-1)
 ```
 
 All groups will be opened to this level
 
-```PHP
+```php
 ->defaultOpenLevel(2)
 ```
 
 Specify the list's force direction. Options include: auto (default), top, and bottom.
 
-```PHP
+```php
 ->direction('top')
 ```
 
 Display individual leaf nodes instead of the main group when all leaf nodes are selected
 
-```PHP
+```php
 ->grouped(false)
 ```
 
 Hide the clearable icon
 
-```PHP
+```php
 ->clearable(false)
 ```
 
 Activate the search functionality
 
-```PHP
+```php
 ->searchable();
 ```
 
 Disable specific options in the tree
 
-```PHP
+```php
 ->disabledOptions([2, 3, 4])
 ```
 
 Hide specific options in the tree
 
-```PHP
+```php
 ->hiddenOptions([2, 3, 4])
 ```
 
 Allow soft deleted items to be displayed
 
-```PHP
+```php
 ->withTrashed()
 ```
 
 Specify a different key for your model.
 For example: you have id, code and parent_code. Your model uses id as key, but the parent-child relation is established between code and parent_code
 
-```PHP
+```php
 ->withKey('code')
 ```
 
 Store fetched models for additional functionality
 
-```PHP
+```php
 ->storeResults()
 ```
 
 Now you can access the results in `disabledOptions` or `hiddenOptions`
 
-```PHP
+```php
 ->disabledOptions(function ($state, SelectTree $component) {
     $results = $component->getResults();
 })
+```
+
+By default, the type of selection in the tree (single or multiple) is determined by the relationship type: `BelongsTo` for single selection and `BelongsToMany` for multiple selection. If you want to
+explicitly set the selection type, use:
+
+```php
+->multiple(false)
+```
+
+If you need to prepend an item to the tree menu, use the `prepend` method. This method accepts an array or a closure. It is useful when the tree-select is used as a filter (see example below).
+
+```php
+use Filament\Tables\Filters\Filter;
+use Illuminate\Database\Eloquent\Builder;
+use CodeWithDennis\FilamentSelectTree\SelectTree;
+```
+
+```php
+->filters([
+    Filter::make('tree')
+        ->form([
+            SelectTree::make('category')
+                ->relationship('categories', 'name', 'parent_id')
+                ->enableBranchNode()
+                ->multiple(false)
+                ->prepend([
+                    'name' => 'Uncategorized Records',
+                    'value' => -1,
+                    'parent' => null, // optional
+                    'disabled' => false, // optional
+                    'hidden' => false, // optional
+                    'children' => [], // optional
+                ])
+        ])
+        ->query(function (Builder $query, array $data) {
+            $categories = [(int) $data['category']];
+            
+            return $query->when($data['category'], function (Builder $query, $categories) {
+                if($data['category'] === -1){
+                    return $query->whereDoesntHave('categories');
+                }
+                
+                return $query->whereHas('categories', fn(Builder $query) => $query->whereIn('id', $categories));
+            });
+        })
+])
 ```
 
 ## Filters
@@ -205,6 +252,7 @@ use CodeWithDennis\FilamentSelectTree\SelectTree;
 ```
 
 ## Screenshots
+
 ![example-1](https://raw.githubusercontent.com/CodeWithDennis/filament-select-tree/3.x/resources/images/example-1.jpg)
 ![example-2](https://raw.githubusercontent.com/CodeWithDennis/filament-select-tree/3.x/resources/images/example-2.jpg)
 ![example-3](https://raw.githubusercontent.com/CodeWithDennis/filament-select-tree/3.x/resources/images/example-3.jpg)
