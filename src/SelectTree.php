@@ -305,7 +305,7 @@ class SelectTree extends Field implements HasAffixActions
 
         if (is_array($this->prepend) && isset($this->prepend['name'], $this->prepend['value'])) {
             $this->prepend['value'] = (string) $this->prepend['value'];
-        }else{
+        } else {
             throw new \InvalidArgumentException('The provided prepend value must be an array with "name" and "value" keys.');
         }
 
@@ -449,7 +449,7 @@ class SelectTree extends Field implements HasAffixActions
 
     public function getCustomKey($record): string
     {
-        $key =  is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
+        $key = is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
 
         return (string) $key;
     }
@@ -628,7 +628,7 @@ class SelectTree extends Field implements HasAffixActions
         $state = parent::getState();
 
         if (is_array($state)) {
-            return array_map(fn($value) => (string) $value, $state);
+            return array_map(fn ($value) => (string) $value, $state);
         }
 
         return (string) $state;
