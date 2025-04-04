@@ -301,7 +301,13 @@ class SelectTree extends Field implements HasAffixActions
 
     public function prepend(Closure|array|null $prepend = null): static
     {
-        $this->prepend = $prepend;
+        $this->prepend = $this->evaluate($prepend);
+
+        if (is_array($this->prepend) && isset($this->prepend['name'], $this->prepend['value'])) {
+            $this->prepend['value'] = (string) $this->prepend['value'];
+        } else {
+            throw new \InvalidArgumentException('The provided prepend value must be an array with "name" and "value" keys.');
+        }
 
         return $this;
     }
@@ -441,9 +447,11 @@ class SelectTree extends Field implements HasAffixActions
         return $this->evaluate($this->independent);
     }
 
-    public function getCustomKey($record)
+    public function getCustomKey($record): string
     {
-        return is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
+        $key = is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
+
+        return (string) $key;
     }
 
     public function getWithCount(): bool
@@ -613,5 +621,16 @@ class SelectTree extends Field implements HasAffixActions
         $this->createOptionModalHeading = $heading;
 
         return $this;
+    }
+
+    public function getState(): mixed
+    {
+        $state = parent::getState();
+
+        if (is_array($state)) {
+            return array_map(fn ($value) => (string) $value, $state);
+        }
+
+        return (string) $state;
     }
 }
