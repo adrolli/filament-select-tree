@@ -88,6 +88,8 @@ class SelectTree extends Field implements HasAffixActions
 
     protected Closure|array|null $prepend = null;
 
+    protected Closure|string|null $treeKey = 'defaultTreeKey';
+
     protected function setUp(): void
     {
         // Load the state from relationships using a callback function.
@@ -613,5 +615,17 @@ class SelectTree extends Field implements HasAffixActions
         $this->createOptionModalHeading = $heading;
 
         return $this;
+    }
+
+    public function treeKey(string $treeKey): static
+    {
+        $this->treeKey = $treeKey;
+
+        return $this;
+    }
+
+    public function getTreeKey(): string
+    {
+        return $this->evaluate($this->treeKey);
     }
 }
