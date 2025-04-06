@@ -312,7 +312,6 @@ class SelectTree extends Field implements HasAffixActions
         return $this;
     }
 
-
     public function getRelationship(): BelongsToMany|BelongsTo
     {
         return $this->getModelInstance()->{$this->evaluate($this->relationship)}();
@@ -450,7 +449,7 @@ class SelectTree extends Field implements HasAffixActions
 
     public function getCustomKey($record): string
     {
-        $key =  is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
+        $key = is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
 
         return (string) $key;
     }
