@@ -34,6 +34,7 @@ export default function selectTree({
 
             return state?.toString()
         },
+        
 
         init() {
             this.tree = new Treeselect({

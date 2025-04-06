@@ -228,8 +228,8 @@ class SelectTree extends Field implements HasAffixActions
         // Create a node with 'name' and 'value' attributes
         $node = [
             'name' => $result->{$this->getTitleAttribute()},
-            'value' => $key,
-            'parent' => $result->{$this->getParentAttribute()},
+            'value' => (string) $key,
+            'parent' => (string) $result->{$this->getParentAttribute()},
             'disabled' => in_array($key, $disabledOptions),
             'hidden' => in_array($key, $hiddenOptions),
         ];
@@ -311,6 +311,7 @@ class SelectTree extends Field implements HasAffixActions
 
         return $this;
     }
+
 
     public function getRelationship(): BelongsToMany|BelongsTo
     {
@@ -447,11 +448,9 @@ class SelectTree extends Field implements HasAffixActions
         return $this->evaluate($this->independent);
     }
 
-    public function getCustomKey($record): string
+    public function getCustomKey($record)
     {
-        $key =  is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
-
-        return (string) $key;
+        return is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
     }
 
     public function getWithCount(): bool
@@ -621,16 +620,5 @@ class SelectTree extends Field implements HasAffixActions
         $this->createOptionModalHeading = $heading;
 
         return $this;
-    }
-
-    public function getState(): mixed
-    {
-        $state = parent::getState();
-
-        if (is_array($state)) {
-            return array_map(fn($value) => (string) $value, $state);
-        }
-
-        return (string) $state;
     }
 }
