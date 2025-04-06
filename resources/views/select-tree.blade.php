@@ -15,7 +15,7 @@
         wire:key="{{ $getTreeKey() }}"
         wire:ignore
         x-ignore
-        @if (FilamentView::hasSpaMode())
+        @if (FilamentView::hasSpaMode(url()->current()))
             ax-load="visible"
         @else
             ax-load
