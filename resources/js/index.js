@@ -27,12 +27,20 @@ export default function selectTree({
         /** @type Treeselect */
         tree: null,
 
+        formatState: function (state) {
+            if (Array.isArray(state)) {
+                return (state ?? []).map((item) => item?.toString())
+            }
+
+            return state?.toString()
+        },
+
         init() {
             this.tree = new Treeselect({
                 id: `tree-${name}-id`,
                 ariaLabel: `tree-${name}-label`,
                 parentHtmlContainer: this.$refs.tree,
-                value: this.state,
+                value: this.formatState(this.state),
                 options,
                 searchable,
                 showCount,
