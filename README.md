@@ -178,6 +178,12 @@ explicitly set the selection type, use:
 ->multiple(false)
 ```
 
+By default, the tree key (wire key) will be a random generated value, you can change this with the following method.
+
+```php
+->treeKey('my-cool-tree')
+```
+
 If you need to prepend an item to the tree menu, use the `prepend` method. This method accepts an array or a closure. It is useful when the tree-select is used as a filter (see example below).
 
 ```php
