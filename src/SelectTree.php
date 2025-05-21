@@ -233,7 +233,7 @@ class SelectTree extends Field implements HasAffixActions
         $node = [
             'name' => $result->{$this->getTitleAttribute()},
             'value' => $key,
-            'parent' => $result->{$this->getParentAttribute()},
+            'parent' => (string) $result->{$this->getParentAttribute()},
             'disabled' => in_array($key, $disabledOptions),
             'hidden' => in_array($key, $hiddenOptions),
         ];
@@ -305,7 +305,13 @@ class SelectTree extends Field implements HasAffixActions
 
     public function prepend(Closure|array|null $prepend = null): static
     {
-        $this->prepend = $prepend;
+        $this->prepend = $this->evaluate($prepend);
+
+        if (is_array($this->prepend) && isset($this->prepend['name'], $this->prepend['value'])) {
+            $this->prepend['value'] = (string) $this->prepend['value'];
+        } else {
+            throw new \InvalidArgumentException('The provided prepend value must be an array with "name" and "value" keys.');
+        }
 
         return $this;
     }
@@ -445,9 +451,11 @@ class SelectTree extends Field implements HasAffixActions
         return $this->evaluate($this->independent);
     }
 
-    public function getCustomKey($record)
+    public function getCustomKey($record): string
     {
-        return is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
+        $key = is_null($this->customKey) ? $record->getKey() : $record->{$this->customKey};
+
+        return (string) $key;
     }
 
     public function getWithCount(): bool

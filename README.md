@@ -210,14 +210,12 @@ use CodeWithDennis\FilamentSelectTree\SelectTree;
                 ])
         ])
         ->query(function (Builder $query, array $data) {
-            $categories = [(int) $data['category']];
-            
-            return $query->when($data['category'], function (Builder $query, $categories) {
-                if($data['category'] === -1){
-                    return $query->whereDoesntHave('categories');
+            return $query->when($data['categories'], function (Builder $query, $categories) {
+                if (collect($categories)->contains('-1')) {
+                    $query->whereDoesntHave('categories');
                 }
-                
-                return $query->whereHas('categories', fn(Builder $query) => $query->whereIn('id', $categories));
+                return $query->orWhereHas('categories',
+                    fn(Builder $query) => $query->whereIn('id', $categories));
             });
         })
 ])
