@@ -178,7 +178,7 @@ explicitly set the selection type, use:
 ->multiple(false)
 ```
 
-By default, the tree key (wire key) will be a random generated value, you can change this with the following method.
+you can change the tree key with the following method.
 
 ```php
 ->treeKey('my-cool-tree')
