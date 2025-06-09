@@ -50,7 +50,7 @@ class SelectTree extends Field implements HasAffixActions
 
     protected bool $expandSelected = true;
 
-    protected bool $enableBranchNode = false;
+    protected Closure|bool $enableBranchNode = false;
 
     protected bool $grouped = true;
 
@@ -406,7 +406,7 @@ class SelectTree extends Field implements HasAffixActions
         return $this;
     }
 
-    public function enableBranchNode(bool $enableBranchNode = true): static
+    public function enableBranchNode(Closure|bool $enableBranchNode = true): static
     {
         $this->enableBranchNode = $enableBranchNode;
 
