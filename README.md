@@ -1,5 +1,8 @@
 # Filament Select Tree
 
+> ATTENTION:
+> This is just a temporary fork to test Filament 4 compatibility. Stick with the Original package `codewithdennis/filament-select-tree` to stay with a maintained package after Filament 4 was released.
+
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/codewithdennis/filament-select-tree.svg?style=flat-square)](https://packagist.org/packages/codewithdennis/filament-select-tree)
 [![Total Downloads](https://img.shields.io/packagist/dt/codewithdennis/filament-select-tree.svg?style=flat-square)](https://packagist.org/packages/codewithdennis/filament-select-tree)
 
@@ -13,7 +16,7 @@ building selection dropdowns with various customization options.
 You can install the package via composer:
 
 ```bash
-composer require codewithdennis/filament-select-tree
+composer require adrolli/filament-select-tree
 ```
 
 ```bash
